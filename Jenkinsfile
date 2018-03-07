@@ -1,4 +1,5 @@
 pipeline {
+
   agent {
     node {
       label 'master'
@@ -16,14 +17,26 @@ pipeline {
         sh '/bin/phpunit ${WORKSPACE}/src'
       }
     }
-    stage('SonarQube analysis') {
+    stage('Create RPM') {
       steps {
-        withSonarQubeEnv('Practical Jenkins Sonarqube') {
-          sh 'echo "sonar.projectKey=production:php-project" > ${WORKSPACE}/sonar-project.properties'
-          sh 'echo "sonar.sources=src/." >> ${WORKSPACE}/sonar-project.properties'
-          sh '/opt/sonarqube-scanner/bin/sonar-scanner'
+        sh '/usr/local/bin/fpm -s dir -t rpm -a all -n php-project -v 1.0 --iteration 1 ${WORKSPACE}/src/=/var/www/php-project'
+      }
+    }
+    stage('Artifactory RPM upload'){
+      steps {
+        script{
+          def server = Artifactory.server 'Practical Jenkins Artifactory'
+          def uploadSpec = readFile 'pkg_resources/upload.json'
+          def buildInfo = server.upload spec: uploadSpec
+          server.publishBuildInfo buildInfo
         }
       }
     }
+  }
+
+  post {
+      always {
+        cleanWs notFailBuild: true
+      }
   }
 }
