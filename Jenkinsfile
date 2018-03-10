@@ -25,7 +25,7 @@ pipeline {
       }
       steps {
         script {
-          def issue = jiraGetIssue idOrKey: env.GIT_BRANCH, site: 'practical-jenkins-jira'
+          def issue = jiraGetIssue idOrKey: env.GIT_BRANCH, failOnError: false, site: 'practical-jenkins-jira'
           if (issue.code.toString() == '200') {
             response = jiraAddComment site: 'practical-jenkins-jira', idOrKey: env.GIT_BRANCH, comment: "Build result: Job - ${JOB_NAME} Build number - ${BUILD_NUMBER} Build URL - ${BUILD_URL}"
           } else {
