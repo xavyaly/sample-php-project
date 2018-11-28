@@ -1,34 +1,33 @@
 pipeline {
+    
+    agent {
+        node {
+            label 'master'
+            }
+        }   // end of agent
+        
+    options {
+        timestamps()
+        }   // end of options
+        
+    stages {
+        stage('PHPUnit Test') {
+            steps {
+                echo 'Running PHPUnit...'
+                sh '/bin/phpunit ${WORKSPACE}'
+                }
+            }   // end of PHPUnit Test
+            
+        stage(‘SonarQube analysis’) {
+            steps {
+                withSonarQubeEnv(‘SonarQubeImplementation’) {
+                    sh ‘echo “sonar.projectkey=production:phptest” > ${WORKSPACE}/sonar-project.properties’
+                    sh ‘echo “sonar.sources=.” >> ${WORKSPACE}/sonar-project.properties’
+                    sh ‘/opt/sonarqube-scanner/bin/sonar-scanner’
+                }
+            }
+        }   // end of SonarQube analysis
+    }   // end of stages
+}   // end of pipeline
 
-  agent {
-    node {
-      label 'master'
-    }
-  }
 
-  options {
-    timestamps()
-  }
-
-  stages {
-    stage('PHPUnit Test') {
-      steps {
-        echo 'Running PHPUnit...'
-        sh '/bin/phpunit ${WORKSPACE}'
-      }
-    }
-    stage(‘Merge PR’) {
-      when {
-	branch 'PR-*'
-      }
-      steps {
-        sh ‘git remote set-url origin git@github.com:xavyaly/sample-php-project.git’
-	sh ‘git remote set-branches --add origin ${CHANGE_TARGET}’
-	sh ‘git fetch origin’
-	sh ‘git checkout ${CHANGE_TARGET}’
-	sh ‘git merge --no-ff ${GIT_COMMIT}’
-	sh ‘git push origin ${CHANGE_TARGET}’
-      }
-    }
-  }
-}
