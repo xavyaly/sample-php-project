@@ -14,28 +14,20 @@ pipeline {
     stage('PHPUnit Test') {
       steps {
         echo 'Running PHPUnit...'
-        sh '/bin/phpunit ${WORKSPACE}/src'
+        sh '/bin/phpunit ${WORKSPACE}'
       }
     }
-    stage('JIRA') {
+    stage(‘Merge PR’) {
       when {
-        not {
-          branch 'master'
-        }
+	branch 'master'
       }
       steps {
-        script {
-          def issue = jiraGetIssue idOrKey: env.GIT_BRANCH, failOnError: false, site: 'practical-jenkins-jira'
-          if (issue.code.toString() == '200') {
-            response = jiraAddComment site: 'practical-jenkins-jira', idOrKey: env.GIT_BRANCH, comment: "Build result: Job - ${JOB_NAME} Build number - ${BUILD_NUMBER} Build URL - ${BUILD_URL}"
-          } else {
-            def issueInfo = [fields: [ project: [key: 'PJD'],
-                             summary: "Review build ${GIT_BRANCH}",
-                             description: 'Review changes for build ${GIT_BRANCH}',
-                             issuetype: [name: 'Task']]]
-            response = jiraNewIssue issue: issueInfo, site: 'practical-jenkins-jira'
-          }
-        }
+        sh ‘git remote set-url origin git@github.com:practicaljenkins/phptest.git’
+	sh ‘git remote set-branches - -add origin ${CHANGE_TARGET}’
+	sh ‘git fetch origin’
+	sh ‘git checkout ${CHANGE_TARGET}’
+	sh ‘git merge - -no-ff ${GIT_COMMIT}’
+	sh ‘git push origin ${CHANGE_TARGET}’
       }
     }
   }
